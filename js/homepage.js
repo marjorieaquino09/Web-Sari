@@ -5,7 +5,9 @@ import {
   collection,
   query,
   where,
-  onSnapshot
+  onSnapshot,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { initializeDefaultProducts } from "./init-products.js";
@@ -21,7 +23,6 @@ onAuthStateChanged(auth, async (user) => {
                      window.location.pathname.endsWith("signup.html") ||
                      window.location.pathname.endsWith("index.html");
 
-  // Kung nasa login o signup page, HUWAG mag-run o mag-redirect papuntang homepage!
   if (isAuthPage) return;
 
   if (!user) {
@@ -31,7 +32,8 @@ onAuthStateChanged(auth, async (user) => {
 
   currentUserId = user.uid;
 
-  // Ang avatar at pangalan ng store sa topbar ay hinahawakan na ng topbar.js
+  // Render Topbar User Info & Profile Picture/Icon
+  loadTopbarUserData(user);
 
   try {
     if (typeof initializeDefaultProducts === "function") {
@@ -43,6 +45,59 @@ onAuthStateChanged(auth, async (user) => {
 
   loadProductsRealtime();
 });
+
+// Function para sa Topbar Avatar at White Store Name
+async function loadTopbarUserData(user) {
+  const topbarStoreName = document.getElementById("topbarStoreName");
+  const avatarContainer =
+    document.getElementById("avatarContainer") ||
+    document.getElementById("topbarAvatarContainer");
+
+  if (topbarStoreName) {
+    topbarStoreName.style.color = "#ffffff";
+    topbarStoreName.style.fontWeight = "700";
+  }
+
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userDocRef);
+
+    let storeName = "My Store";
+    let profileImg = null;
+
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      storeName = data.store_name || data.full_name || "My Store";
+      profileImg = data.profile_image || null;
+    }
+
+    if (topbarStoreName) {
+      topbarStoreName.innerText = storeName;
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
+      } else {
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
+    }
+  } catch (error) {
+    console.error("Error loading topbar user data:", error);
+  }
+}
 
 function loadProductsRealtime() {
   const productGrid = document.getElementById("productGrid");

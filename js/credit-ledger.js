@@ -1,4 +1,3 @@
-// js/credit-ledger.js
 import { db, auth } from "./firebase-config.js";
 import { checkAuth, logoutUser } from "./auth.js";
 import { 
@@ -16,25 +15,58 @@ import {
 let currentUserId = null;
 let allCredits = [];
 
-
 checkAuth(async (user) => {
   currentUserId = user.uid;
 
+  const storeNameEl = document.getElementById("topbarStoreName") || document.getElementById("topbarUserEmail");
+  const avatarContainer = document.getElementById("avatarContainer") || document.getElementById("topbarAvatarContainer");
+
+  if (storeNameEl) {
+    storeNameEl.style.color = "#ffffff";
+    storeNameEl.style.fontWeight = "700";
+    storeNameEl.innerText = "Loading...";
+  }
+
   try {
     const userDoc = await getDoc(doc(db, "users", currentUserId));
+    let profileImg = null;
+
     if (userDoc.exists()) {
-      const storeNameEl = document.getElementById("topbarStoreName");
+      const uData = userDoc.data();
       if (storeNameEl) {
-        storeNameEl.innerText = userDoc.data().store_name || "My Store";
+        storeNameEl.innerText = uData.store_name || uData.full_name || "My Store";
+      }
+      profileImg = uData.profile_image || null;
+    } else {
+      if (storeNameEl) storeNameEl.innerText = "My Store";
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
+      } else {
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
       }
     }
   } catch (err) {
     console.error("Error fetching profile:", err);
+    if (storeNameEl) storeNameEl.innerText = "My Store";
   }
 
   loadCreditLedger();
 });
-
 
 async function loadCreditLedger() {
   try {
@@ -46,7 +78,6 @@ async function loadCreditLedger() {
       allCredits.push({ id: docSnap.id, ...docSnap.data() });
     });
 
-    
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -78,7 +109,6 @@ async function loadCreditLedger() {
     console.error("Error loading credits ledger:", error);
   }
 }
-
 
 function renderLedger() {
   const searchInput = document.getElementById("searchCustomerInput");
@@ -154,7 +184,6 @@ function renderLedger() {
     `;
   }).join("");
 
-  
   document.querySelectorAll(".btn-mark-paid").forEach((btn) => {
     btn.addEventListener("click", () => {
       markPaid(btn.dataset.id, btn.dataset.name, Number(btn.dataset.amount));
@@ -162,18 +191,15 @@ function renderLedger() {
   });
 }
 
-
 async function markPaid(creditId, customerName, paidAmount) {
   if (confirm(`Mark credit for ${customerName} as fully paid?`)) {
     try {
-      
       const credRef = doc(db, "credits", creditId);
       await updateDoc(credRef, {
         isPaid: true,
         updatedAt: serverTimestamp()
       });
 
-     
       await addDoc(collection(db, "transactions"), {
         userId: currentUserId,
         payment_method: "Cash",
@@ -190,7 +216,6 @@ async function markPaid(creditId, customerName, paidAmount) {
     }
   }
 }
-
 
 const searchInputEl = document.getElementById("searchCustomerInput");
 if (searchInputEl) {

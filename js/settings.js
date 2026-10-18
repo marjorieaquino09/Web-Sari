@@ -10,14 +10,27 @@ checkAuth(async (user) => {
   currentUserId = user.uid;
   userEmail = user.email || "";
 
+  const storeNameEl = document.getElementById("topbarStoreName") || document.getElementById("topbarUserEmail");
+  const avatarContainer = document.getElementById("avatarContainer") || document.getElementById("topbarAvatarContainer");
+
+  if (storeNameEl) {
+    storeNameEl.style.color = "#ffffff";
+    storeNameEl.style.fontWeight = "700";
+    storeNameEl.innerText = "Loading...";
+  }
+
   try {
     const userDocRef = doc(db, "users", currentUserId);
     const userSnap = await getDoc(userDocRef);
+    let profileImg = null;
 
     if (userSnap.exists()) {
       const data = userSnap.data();
 
-      // Ang avatar at pangalan ng store sa topbar ay hinahawakan na ng topbar.js
+      if (storeNameEl) {
+        storeNameEl.innerText = data.store_name || data.full_name || "My Store";
+      }
+      profileImg = data.profile_image || null;
 
       if (data.low_stock_threshold !== undefined) {
         document.getElementById("low_stock_threshold").value = data.low_stock_threshold;
@@ -28,10 +41,81 @@ checkAuth(async (user) => {
       if (data.low_stock_alerts !== undefined) {
         document.getElementById("lowStockAlertToggle").checked = data.low_stock_alerts;
       }
+
+      if (data.app_theme) {
+        applyTheme(data.app_theme);
+      }
+    } else {
+      if (storeNameEl) storeNameEl.innerText = "My Store";
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
+      } else {
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
     }
   } catch (err) {
     console.error("Error loading settings:", err);
+    if (storeNameEl) storeNameEl.innerText = "My Store";
   }
+});
+
+function applyTheme(themeName) {
+  document.body.classList.remove("theme-default", "theme-nordic", "theme-emerald");
+
+  if (themeName === "nordic") {
+    document.body.classList.add("theme-nordic");
+  } else if (themeName === "emerald") {
+    document.body.classList.add("theme-emerald");
+  } else {
+    document.body.classList.add("theme-default");
+  }
+
+  localStorage.setItem("sariAppTheme", themeName);
+
+  document.querySelectorAll(".theme-btn").forEach((btn) => {
+    if (btn.dataset.theme === themeName) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+}
+
+const savedLocalTheme = localStorage.getItem("sariAppTheme") || "default";
+applyTheme(savedLocalTheme);
+
+document.querySelectorAll(".theme-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const selectedTheme = btn.dataset.theme;
+    applyTheme(selectedTheme);
+
+    if (currentUserId) {
+      try {
+        const userRef = doc(db, "users", currentUserId);
+        await updateDoc(userRef, {
+          app_theme: selectedTheme,
+          updated_at: serverTimestamp()
+        });
+      } catch (err) {
+        console.error("Error saving theme to Firestore:", err);
+      }
+    }
+  });
 });
 
 document.getElementById("settingsForm").addEventListener("submit", async (e) => {
@@ -98,6 +182,6 @@ document.getElementById("aboutBtn").addEventListener("click", () => {
   alert("Sari App v1.0 — Firebase Powered Edition");
 });
 
-document.getElementById("logoutBtnFull").addEventListener("click", () => {
+document.getElementById("logoutBtn").addEventListener("click", () => {
   logoutUser();
 });

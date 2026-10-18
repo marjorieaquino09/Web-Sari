@@ -41,40 +41,43 @@ checkAuth(async (user) => {
     const dobInput = document.getElementById("inputDob");
     if (dobInput) dobInput.value = dob;
 
-    renderAvatar(fullName, currentProfileImage);
+    renderAvatar(currentProfileImage);
   } catch (error) {
     console.error("Error loading profile:", error);
   }
 });
 
-function renderAvatar(name, imgUrl) {
+function renderAvatar(imgUrl) {
   const topbarAvatar =
     document.getElementById("topbarAvatarContainer") ||
     document.getElementById("avatarContainer");
   const avatarBox = document.getElementById("avatarBox");
 
+  // 1. Topbar Avatar Rendering
   if (topbarAvatar) {
     if (imgUrl) {
-      if (topbarAvatar.classList.contains("topbar-avatar")) {
-        topbarAvatar.innerHTML = "";
-        topbarAvatar.style.backgroundImage = `url("${imgUrl}")`;
-        topbarAvatar.style.backgroundSize = "cover";
-        topbarAvatar.style.backgroundPosition = "center";
-      } else {
-        topbarAvatar.innerHTML = `<img src="${imgUrl}" class="topbar-avatar" style="object-fit:cover;" alt="Avatar">`;
-      }
+      topbarAvatar.style.backgroundImage = `url("${imgUrl}")`;
+      topbarAvatar.style.backgroundSize = "cover";
+      topbarAvatar.style.backgroundPosition = "center";
+      topbarAvatar.innerHTML = "";
     } else {
       topbarAvatar.style.backgroundImage = "";
-      topbarAvatar.innerText = (name || "U").charAt(0).toUpperCase();
+      topbarAvatar.style.backgroundColor = "#ffffff";
+      topbarAvatar.style.color = "#1b382b";
+      topbarAvatar.style.display = "flex";
+      topbarAvatar.style.alignItems = "center";
+      topbarAvatar.style.justifyContent = "center";
+      topbarAvatar.innerHTML = `<i class="fa-solid fa-user"></i>`;
     }
   }
 
+  // 2. Main Profile Box Avatar Rendering
   if (avatarBox) {
     if (imgUrl) {
       avatarBox.innerHTML = `<img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" alt="Avatar">`;
     } else {
-      const initial = (name || "U").charAt(0).toUpperCase();
-      avatarBox.innerHTML = `<span style="font-size: 2.5rem; font-weight: bold; color: #fff;">${initial}</span>`;
+      avatarBox.style.backgroundColor = "#4d774e";
+      avatarBox.innerHTML = `<i class="fa-solid fa-user" style="font-size: 2.5rem; color: #ffffff;"></i>`;
     }
   }
 }
@@ -116,7 +119,7 @@ if (avatarBox && profileImageFile) {
 
     try {
       currentProfileImage = await compressImage(file);
-      renderAvatar(document.getElementById("inputFullName").value, currentProfileImage);
+      renderAvatar(currentProfileImage);
 
       if (currentUserId) {
         await updateDoc(doc(db, "users", currentUserId), {
@@ -140,7 +143,6 @@ if (profileForm) {
 
     const newFullName = document.getElementById("inputFullName").value.trim();
     const newStoreName = document.getElementById("inputStoreName").value.trim();
-    const newDob = document.getElementById("inputDob").value;
 
     try {
       btn.disabled = true;
@@ -150,7 +152,6 @@ if (profileForm) {
       await updateDoc(userRef, {
         full_name: newFullName,
         store_name: newStoreName,
-        dob: newDob,
         profile_image: currentProfileImage,
         updated_at: serverTimestamp()
       });

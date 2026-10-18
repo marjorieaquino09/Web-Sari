@@ -1,4 +1,3 @@
-// js/checkout.js
 import { db, auth } from "./firebase-config.js";
 import { checkAuth, logoutUser } from "./auth.js";
 import { 
@@ -19,28 +18,60 @@ let cart = [];
 let selectedCategory = "All";
 let searchQuery = "";
 let paymentMethod = "Cash";
-let html5QrCode = null; // Scanner instance
-
+let html5QrCode = null;
 
 checkAuth(async (user) => {
   currentUserId = user.uid;
 
+  const storeNameEl = document.getElementById("topbarStoreName") || document.getElementById("topbarUserEmail");
+  const avatarContainer = document.getElementById("avatarContainer") || document.getElementById("topbarAvatarContainer");
+
+  if (storeNameEl) {
+    storeNameEl.style.color = "#ffffff";
+    storeNameEl.style.fontWeight = "700";
+    storeNameEl.innerText = "Loading...";
+  }
+
   try {
     const userDoc = await getDoc(doc(db, "users", currentUserId));
+    let profileImg = null;
+
     if (userDoc.exists()) {
       const uData = userDoc.data();
-      const storeNameEl = document.getElementById("topbarStoreName");
       if (storeNameEl) {
         storeNameEl.innerText = uData.store_name || uData.full_name || "My Store";
+      }
+      profileImg = uData.profile_image || null;
+    } else {
+      if (storeNameEl) storeNameEl.innerText = "My Store";
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
+      } else {
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
       }
     }
   } catch (err) {
     console.error("Error fetching profile:", err);
+    if (storeNameEl) storeNameEl.innerText = "My Store";
   }
 
   loadProductsRealtime();
 });
-
 
 function loadProductsRealtime() {
   const q = query(collection(db, "products"), where("userId", "==", currentUserId));
@@ -54,7 +85,6 @@ function loadProductsRealtime() {
     renderProducts();
   });
 }
-
 
 function renderProducts() {
   const posGrid = document.getElementById("posGrid");
@@ -89,7 +119,6 @@ function renderProducts() {
     const price = Number(p.price || 0);
     const isAvailable = stock > 0;
 
-    // Auto-detect image source mula sa uploads/ folder, http, o base64
     let imgSource = "uploads/default.jpg";
     if (p.image) {
       if (p.image.startsWith("http") || p.image.startsWith("data:")) {
@@ -121,7 +150,6 @@ function renderProducts() {
   });
 }
 
-// 4. POS Cart Management Logic
 function addToCart(productId) {
   const product = allProducts.find((p) => p.id === productId);
   if (!product || Number(product.stock) <= 0) return;
@@ -199,7 +227,6 @@ function renderCart() {
   if (subtotalText) subtotalText.innerText = `₱${total.toFixed(2)}`;
   if (totalText) totalText.innerText = `₱${total.toFixed(2)}`;
 
- 
   document.querySelectorAll(".qty-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -220,7 +247,6 @@ function renderCart() {
     });
   });
 
-  
   document.querySelectorAll(".pos-remove-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -230,7 +256,6 @@ function renderCart() {
     });
   });
 }
-
 
 const payCashBtn = document.getElementById("payCashBtn");
 const payCreditBtn = document.getElementById("payCreditBtn");
@@ -274,7 +299,6 @@ if (completeSaleBtn) {
 
       const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-      
       const txnRef = await addDoc(collection(db, "transactions"), {
         userId: currentUserId,
         items: cart,
@@ -284,7 +308,6 @@ if (completeSaleBtn) {
         createdAt: serverTimestamp()
       });
 
-     
       if (paymentMethod === "Credit") {
         await addDoc(collection(db, "credits"), {
           userId: currentUserId,
@@ -298,7 +321,6 @@ if (completeSaleBtn) {
         });
       }
 
-      
       const batch = writeBatch(db);
       cart.forEach((item) => {
         const prodRef = doc(db, "products", item.id);
@@ -322,7 +344,6 @@ if (completeSaleBtn) {
   });
 }
 
-
 const clearCartBtn = document.getElementById("clearCartBtn");
 if (clearCartBtn) {
   clearCartBtn.addEventListener("click", () => {
@@ -330,7 +351,6 @@ if (clearCartBtn) {
     renderCart();
   });
 }
-
 
 const posSearch = document.getElementById("posSearch");
 if (posSearch) {
@@ -349,7 +369,6 @@ document.querySelectorAll(".pos-category").forEach((btn) => {
   });
 });
 
-
 const startScanBtn = document.getElementById("startScanBtn");
 if (startScanBtn) {
   startScanBtn.addEventListener("click", () => {
@@ -362,17 +381,29 @@ if (startScanBtn) {
         if (devices && devices.length) {
           const cameraId = devices.length > 1 ? devices[1].id : devices[0].id;
           
+          const scanConfig = {
+            fps: 30,
+            qrbox: { width: 320, height: 160 },
+            aspectRatio: 1.777778,
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39
+            ],
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true
+            }
+          };
+
           html5QrCode = new Html5Qrcode("reader");
           html5QrCode.start(
             cameraId, 
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 120 }
-            },
+            scanConfig,
             (decodedText) => {
               const scannedCode = decodedText.trim();
-              
-              
               const foundProduct = allProducts.find(p => p.barcode === scannedCode || (p.name && p.name.toLowerCase().includes(scannedCode.toLowerCase())));
 
               if (foundProduct) {
@@ -382,14 +413,11 @@ if (startScanBtn) {
                 alert(`Walang nakitang produkto para sa code na ito: ${scannedCode}`);
               }
               
-              
               html5QrCode.stop().then(() => {
                 readerDiv.style.display = "none";
               }).catch(err => console.error("Error stopping scanner:", err));
             },
-            (errorMessage) => {
-             
-            }
+            (errorMessage) => {}
           ).catch(err => {
             console.error("Hindi ma-access ang camera:", err);
             alert("Hindi ma-access ang camera. Siguraduhing naka-allow ito.");

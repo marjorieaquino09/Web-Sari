@@ -14,17 +14,50 @@ let categoryChartChartJS = null;
 checkAuth(async (user) => {
   currentUserId = user.uid;
 
+  const storeNameEl = document.getElementById("topbarStoreName") || document.getElementById("topbarUserEmail");
+  const avatarContainer = document.getElementById("avatarContainer") || document.getElementById("topbarAvatarContainer");
+
+  if (storeNameEl) {
+    storeNameEl.style.color = "#ffffff";
+    storeNameEl.style.fontWeight = "700";
+    storeNameEl.innerText = "Loading...";
+  }
+
   try {
     const userDoc = await getDoc(doc(db, "users", currentUserId));
-    const storeNameEl = document.getElementById("topbarStoreName");
-    if (userDoc.exists() && storeNameEl) {
-      storeNameEl.innerText = userDoc.data().store_name || userDoc.data().name || "My Store";
-    } else if (storeNameEl) {
-      storeNameEl.innerText = "My Store";
+    let profileImg = null;
+
+    if (userDoc.exists()) {
+      const uData = userDoc.data();
+      if (storeNameEl) {
+        storeNameEl.innerText = uData.store_name || uData.full_name || uData.name || "My Store";
+      }
+      profileImg = uData.profile_image || null;
+    } else {
+      if (storeNameEl) storeNameEl.innerText = "My Store";
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
+      } else {
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
     }
   } catch (err) {
     console.error("Error fetching user details:", err);
-    const storeNameEl = document.getElementById("topbarStoreName");
     if (storeNameEl) storeNameEl.innerText = "My Store";
   }
 
@@ -40,7 +73,6 @@ async function loadDashboardData() {
     let cashCount = 0;
     let creditCount = 0;
     
-    // Kumpletong 12 Buwan ng taon para sa magandang tuloy-tuloy na linya
     const months12 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const monthlyRevenueMap = {};
     months12.forEach(m => monthlyRevenueMap[m] = 0);
@@ -89,8 +121,8 @@ async function loadDashboardData() {
             if (!productSalesMap[item.name]) {
               productSalesMap[item.name] = { qty: 0, revenue: 0 };
             }
-            productSalesMap[item.name].qty += Number(item.qty || 1);
-            productSalesMap[item.name].revenue += (Number(item.price || 0) * Number(item.qty || 1));
+            productSalesMap[item.name].qty += Number(item.qty || item.quantity || 1);
+            productSalesMap[item.name].revenue += (Number(item.price || 0) * Number(item.qty || item.quantity || 1));
           }
         });
       }
@@ -126,7 +158,6 @@ async function loadDashboardData() {
   }
 }
 
-// GRAPH 1: PROPESYONAL NA 12-MONTH AREA TREND CHART
 function renderCleanLineChart(monthsList, monthlyRevenueMap) {
   const canvas = document.getElementById("trendChartCanvas");
   if (!canvas) return;
@@ -140,7 +171,6 @@ function renderCleanLineChart(monthsList, monthlyRevenueMap) {
 
   const ctx = canvas.getContext("2d");
 
-  // Gradient Fills
   const revGrad = ctx.createLinearGradient(0, 0, 0, 250);
   revGrad.addColorStop(0, "rgba(74, 222, 128, 0.4)");
   revGrad.addColorStop(1, "rgba(74, 222, 128, 0.0)");
@@ -211,7 +241,6 @@ function renderCleanLineChart(monthsList, monthlyRevenueMap) {
   });
 }
 
-// GRAPH 2: MALINIS NA TOP 5 CATEGORIES DONUT CHART
 async function loadCleanCategoryDonut() {
   const canvas = document.getElementById("categoryChartCanvas");
   if (!canvas) return;
@@ -235,7 +264,6 @@ async function loadCleanCategoryDonut() {
 
     const sortedCats = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
     
-    // Kunin lang ang Top 4 + ipagsama ang iba sa "Others"
     const topLabels = [];
     const topData = [];
     let othersSum = 0;

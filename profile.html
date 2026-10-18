@@ -8,6 +8,37 @@
   <link rel="stylesheet" href="css/extra.css?v=12.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    /* Topbar Link at Store Name Styling */
+    .topbar-store {
+      text-decoration: none;
+      color: #ffffff !important; /* Puti para litaw sa dark background */
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #topbarStoreName {
+      color: #ffffff !important;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    /* Topbar Avatar Circle Container */
+    .topbar-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1b382b;
+      font-size: 0.95rem;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    /* Main Center Avatar Box */
     .avatar-upload-box {
       width: 90px;
       height: 90px;
@@ -17,8 +48,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2rem;
-      font-weight: 800;
+      font-size: 2.5rem;
       color: #ffffff;
       cursor: pointer;
       overflow: hidden;
@@ -26,13 +56,9 @@
       margin: 0 auto;
       transition: opacity 0.2s ease;
     }
+    
     .avatar-upload-box:hover {
       opacity: 0.85;
-    }
-    .avatar-upload-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
   </style>
 </head>
@@ -95,8 +121,10 @@
           <div class="topbar-left">
             <button class="topbar-home-btn" type="button" onclick="window.location.href='profile.html'">Store Profile</button>
           </div>
-          <a class="topbar-store" id="profileBtn" href="profile.html" style="text-decoration:none; color:inherit;">
-            <span class="topbar-avatar" id="avatarContainer"></span>
+          <a class="topbar-store" id="profileBtn" href="profile.html">
+            <span class="topbar-avatar" id="avatarContainer">
+              <i class="fa-solid fa-user"></i>
+            </span>
             <span id="topbarStoreName">Loading...</span>
           </a>
         </div>
@@ -108,30 +136,29 @@
         <p style="text-align: center; font-size: 0.85rem; color: #a3b899; margin-bottom: 15px;">Profile Picture (Click to Change)</p>
         
         <div style="display: flex; justify-content: center; margin-bottom: 25px;">
-          <input type="file" id="profileImageInput" accept="image/*" style="display: none;">
-          <div class="avatar-upload-box" id="avatarUploadBtn">
-            <span id="avatarInitials">M</span>
-            <img id="avatarPreview" src="" alt="Profile Picture" style="display: none;">
+          <input type="file" id="profileImageFile" accept="image/*" style="display: none;">
+          <div class="avatar-upload-box" id="avatarBox">
+            <i class="fa-solid fa-user"></i>
           </div>
         </div>
 
         <form id="profileForm">
           <div class="inv-form-group" style="margin-bottom: 15px;">
             <label class="inv-form-label" style="color: #ffffff; font-weight: 700; margin-bottom: 5px; display: block;">Owner Name</label>
-            <input type="text" id="ownerName" class="inv-form-input" placeholder="Owner Name" style="width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600;">
+            <input type="text" id="inputFullName" class="inv-form-input" placeholder="Owner Name" style="width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600;">
           </div>
 
           <div class="inv-form-group" style="margin-bottom: 15px;">
             <label class="inv-form-label" style="color: #ffffff; font-weight: 700; margin-bottom: 5px; display: block;">Store Name</label>
-            <input type="text" id="storeName" class="inv-form-input" placeholder="Store Name" style="width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600;">
+            <input type="text" id="inputStoreName" class="inv-form-input" placeholder="Store Name" style="width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 600;">
           </div>
 
           <div class="inv-form-group" style="margin-bottom: 25px;">
             <label class="inv-form-label" style="color: #ffffff; font-weight: 700; margin-bottom: 5px; display: block;">Email Address</label>
-            <input type="email" id="emailAddress" class="inv-form-input" placeholder="Email Address" disabled style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: #e2e8f0; color: #475569; font-weight: 600;">
+            <input type="email" id="valEmail" class="inv-form-input" placeholder="Email Address" disabled style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: #e2e8f0; color: #475569; font-weight: 600;">
           </div>
 
-          <button type="submit" id="saveBtn" class="inv-submit-btn" style="width: 100%; background: #9dc88d; color: #14301f; border: none; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer;">
+          <button type="submit" id="saveProfileBtn" class="inv-submit-btn" style="width: 100%; background: #9dc88d; color: #14301f; border: none; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer;">
             <i class="fa-solid fa-floppy-disk"></i> Save Changes
           </button>
         </form>
@@ -140,108 +167,6 @@
     </main>
   </div>
 
-  <script src="js/script.js?v=11.0" type="module"></script>
-  <script type="module">
-    import { auth } from "./js/firebase-config.js";
-    import { signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-    const avatarUploadBtn = document.getElementById("avatarUploadBtn");
-    const profileImageInput = document.getElementById("profileImageInput");
-    const avatarPreview = document.getElementById("avatarPreview");
-    const avatarInitials = document.getElementById("avatarInitials");
-    const profileForm = document.getElementById("profileForm");
-
-    avatarUploadBtn.addEventListener("click", () => {
-      profileImageInput.click();
-    });
-
-    profileImageInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          const imageBase64 = event.target.result;
-          avatarPreview.src = imageBase64;
-          avatarPreview.style.display = "block";
-          avatarInitials.style.display = "none";
-          localStorage.setItem("userProfileImage", imageBase64);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    const savedImage = localStorage.getItem("userProfileImage");
-    if (savedImage) {
-      avatarPreview.src = savedImage;
-      avatarPreview.style.display = "block";
-      avatarInitials.style.display = "none";
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-      } else {
-        const storeNameElem = document.getElementById("topbarStoreName");
-        const emailInput = document.getElementById("emailAddress");
-        const ownerInput = document.getElementById("ownerName");
-        const storeInput = document.getElementById("storeName");
-
-        const savedStoreName = localStorage.getItem("customStoreName") || user.displayName || "My Store";
-        
-        if (storeNameElem) storeNameElem.innerText = savedStoreName;
-        if (emailInput) emailInput.value = user.email || "";
-        if (ownerInput) ownerInput.value = user.displayName || "";
-        if (storeInput) storeInput.value = savedStoreName;
-
-        if (user.displayName) {
-          avatarInitials.innerText = user.displayName.charAt(0).toUpperCase();
-        }
-      }
-    });
-
-    profileForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const ownerName = document.getElementById("ownerName").value.trim();
-      const storeName = document.getElementById("storeName").value.trim();
-      const storeNameElem = document.getElementById("topbarStoreName");
-      const saveBtn = document.getElementById("saveBtn");
-
-      saveBtn.innerText = "Saving...";
-      saveBtn.disabled = true;
-
-      try {
-        if (auth.currentUser && ownerName) {
-          await updateProfile(auth.currentUser, {
-            displayName: ownerName
-          });
-        }
-
-        const displayNameToUse = storeName || ownerName || "My Store";
-        if (storeNameElem) storeNameElem.innerText = displayNameToUse;
-        localStorage.setItem("customStoreName", displayNameToUse);
-
-        alert("Profile updated successfully!");
-      } catch (error) {
-        console.error("Error updating profile:", error);
-        alert("Failed to update profile. Please try again.");
-      } finally {
-        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
-        saveBtn.disabled = false;
-      }
-    });
-
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        try {
-          await signOut(auth);
-          window.location.href = "index.html";
-        } catch (error) {
-          console.error("Logout error:", error);
-        }
-      });
-    }
-  </script>
+  <script type="module" src="js/profile.js"></script>
 </body>
 </html>

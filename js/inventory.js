@@ -43,18 +43,45 @@ checkAuth(async (user) => {
   currentUserId = user.uid;
 
   const storeNameEl = document.getElementById("topbarStoreName") || document.getElementById("topbarUserEmail");
+  const avatarContainer = document.getElementById("avatarContainer") || document.getElementById("topbarAvatarContainer");
+
   if (storeNameEl) {
+    storeNameEl.style.color = "#ffffff";
+    storeNameEl.style.fontWeight = "700";
     storeNameEl.innerText = "Loading...";
   }
 
   try {
     const userDoc = await getDoc(doc(db, "users", currentUserId));
-    if (storeNameEl) {
-      if (userDoc.exists()) {
-        const uData = userDoc.data();
+    let profileImg = null;
+
+    if (userDoc.exists()) {
+      const uData = userDoc.data();
+      if (storeNameEl) {
         storeNameEl.innerText = uData.store_name || uData.full_name || "My Store";
+      }
+      profileImg = uData.profile_image || null;
+    } else {
+      if (storeNameEl) storeNameEl.innerText = "My Store";
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
       } else {
-        storeNameEl.innerText = "My Store";
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
       }
     }
   } catch (err) {
@@ -383,13 +410,27 @@ if (startScanBtn) {
         if (devices && devices.length) {
           const cameraId = devices.length > 1 ? devices[1].id : devices[0].id;
           
+          const scanConfig = {
+            fps: 30,
+            qrbox: { width: 320, height: 160 },
+            aspectRatio: 1.777778,
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39
+            ],
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true
+            }
+          };
+
           html5QrCode = new Html5Qrcode("reader");
           html5QrCode.start(
             cameraId, 
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 120 }
-            },
+            scanConfig,
             (decodedText) => {
               const scannedCode = decodedText.trim();
               const foundProduct = allProducts.find(p => p.barcode === scannedCode);

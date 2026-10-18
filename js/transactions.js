@@ -16,25 +16,53 @@ let allTransactions = [];
 checkAuth(async (user) => {
   currentUserId = user.uid;
 
+  const topbarEl = document.getElementById("topbarStoreName") || document.getElementById("topbarUserEmail");
+  const avatarContainer = document.getElementById("avatarContainer") || document.getElementById("topbarAvatarContainer");
+
+  if (topbarEl) {
+    topbarEl.style.color = "#ffffff";
+    topbarEl.style.fontWeight = "700";
+    topbarEl.innerText = "Loading...";
+  }
+
   try {
     const userDoc = await getDoc(doc(db, "users", currentUserId));
+    let profileImg = null;
 
     if (userDoc.exists()) {
       const data = userDoc.data();
-
-      storeName =
-        data.store_name ||
-        data.full_name ||
-        "My Store";
-
-      const topbarEl = document.getElementById("topbarStoreName");
+      storeName = data.store_name || data.full_name || "My Store";
+      profileImg = data.profile_image || null;
 
       if (topbarEl) {
         topbarEl.innerText = storeName;
       }
+    } else {
+      if (topbarEl) topbarEl.innerText = "My Store";
+    }
+
+    if (avatarContainer) {
+      if (profileImg) {
+        avatarContainer.style.backgroundImage = `url("${profileImg}")`;
+        avatarContainer.style.backgroundSize = "cover";
+        avatarContainer.style.backgroundPosition = "center";
+        avatarContainer.innerHTML = "";
+      } else {
+        avatarContainer.style.backgroundImage = "";
+        avatarContainer.style.backgroundColor = "#ffffff";
+        avatarContainer.style.color = "#1b382b";
+        avatarContainer.style.display = "flex";
+        avatarContainer.style.alignItems = "center";
+        avatarContainer.style.justifyContent = "center";
+        avatarContainer.style.borderRadius = "50%";
+        avatarContainer.style.width = "32px";
+        avatarContainer.style.height = "32px";
+        avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
     }
   } catch (error) {
     console.error("Error fetching store info:", error);
+    if (topbarEl) topbarEl.innerText = "My Store";
   }
 
   loadTransactionsRealtime();
@@ -203,10 +231,7 @@ function renderTransactions() {
         txn.customer_name ||
         "Walk-in Customer";
 
-      const receiptNo =
-        `#T-${String(
-          allTransactions.length - index
-        ).padStart(4, "0")}`;
+      const receiptNo = `#T-${String(allTransactions.length - index).padStart(4, "0")}`;
 
       let dateFormatted = "N/A";
 
